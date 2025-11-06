@@ -1,147 +1,131 @@
 #include "shell.h"
 
-static int exit_code = 0;
-
 /**
-* fetch_input - Reads a full line of input from standard input
-* Return: Pointer to the read string on success, or NULL on EOF
-*/
+ * fetch_input - Reads one line from stdin; trims trailing newline.
+ * Return: malloc'ed string or NULL on EOF/error.
+ */
 static char *fetch_input(void)
 {
-char *buffer = NULL;
-size_t bufsize = 0;
-ssize_t chars = getline(&buffer, &bufsize, stdin);
+    char *buf = NULL;
+    size_t cap = 0;
+    ssize_t n = getline(&buf, &cap, stdin);
 
-if (chars == -1)
-{
-free(buffer);
-return NULL;
-}
-if (chars > 0 && buffer[chars - 1] == '\n')
-buffer[chars - 1] = '\0';
-return buffer;
+    if (n == -1) {
+        free(buf);
+        return NULL;
+    }
+    if (n > 0 && buf[n - 1] == '\n')
+        buf[n - 1] = '\0';
+    return buf;
 }
 
 /**
-* is_empty_line - Checks if the given string is empty or whitespace
-* @txt: Pointer to the input string
-* Return: 1 if the line is empty or whitespace only, 0 ow
-*/
+ * is_empty_line - Checks if string is empty or only spaces/tabs.
+ * @txt: input string
+ * Return: 1 if empty/whitespace-only, else 0.
+ */
 static int is_empty_line(const char *txt)
 {
-if (!txt)
-return (1);
-
-while (*txt == ' ' || *txt == '\t')
-txt++;
-
-return (*txt == '\0');
+    if (!txt) return 1;
+    while (*txt == ' ' || *txt == '\t')
+        txt++;
+    return (*txt == '\0');
 }
 
 /**
-* run_interactive - Runs the shell in interactive mode
-* @envp: Environment variables array
-* @prog: Name of the shell executable
-* @last_code: Pointer to an integer holding the last exit status
-* Return: nothing
-*/
-void run_interactive(char **envp, const char *prog, int *last_code)
-{
-char *user_cmd;
-
-while (1)
-{
-write(STDOUT_FILENO, PROMPT_TEXT, strlen(PROMPT_TEXT));
-user_cmd = fetch_input();
-
-f (!user_cmd)
-{
-write(STDOUT_FILENO, "\n", 1);
-break;
-}
-
-if (!is_empty_line(user_cmd))
-*last_code = execute_simple(user_cmd, envp, prog);
-
-free(user_cmd);
-}
-}
-
-/**
-* run_interactive - Runs the shell in noninteractive mode
-* @envp: Environment variables array.
-* @prog: Name of the shell executable.
-* @last_code: Pointer to an integer holding the last exit status.
-* Return: nothing
-*/
-void run_noninteractive(char **envp, const char *prog, int *last_code)
-{
-char *user_cmd;
-
-while ((user_cmd = fetch_input()) != NULL)
-{
-if (!is_empty_line(user_cmd))
-*last_code = execute_simple(user_cmd, envp, prog);
-
-free(user_cmd);
-}
-}
-
-/**
-* execute_simple - Executes a single command without arguments or PATH
-* @cmd: The command to execute
-* @envp: Environment variables array
-* @prog: Name of the shell executable
-* Return: Exit status of the executed command
-*/
+ * execute_simple - Executes a single command (no args, no PATH).
+ * @cmd: command path (e.g. /bin/ls)
+ * @envp: env
+ * @prog: program name for perror prefix
+ * Return: exit status of child (0..255), 1 on wait error, 127 on exec error.
+ */
 int execute_simple(char *cmd, char **envp, const char *prog)
 {
-pid_t child_pid = fork();
-int temp_status = 0;
+    pid_t pid = fork();
+    int status = 0;
 
-if (child_pid == -1)
-{
-perror(prog);
-return 1;
-}
+    if (pid == -1) {
+        perror(prog);
+        return 1;
+    }
 
-if (child_pid == 0)
-{
-char *cmd_argv[2] = { cmd, NULL };
-execve(cmd_argv[0], cmd_argv, envp);
-perror(prog);
-_exit(127);
-}
-else {
-int wait_status;
-if (waitpid(child_pid, &wait_status, 0) == -1)
-perror(prog);
-else if (WIFEXITED(wait_status))
-temp_status = WEXITSTATUS(wait_status);
-else
-temp_status = 1;
+    if (pid == 0) {
+        char *argv_exec[2] = { cmd, NULL };
+        execve(argv_exec[0], argv_exec, envp);
+        perror(prog);
+        _exit(127);
+    }
 
-exit_code = temp_status;
-return temp_status;
-}
+    /* parent */
+    {
+        int st;
+        if (waitpid(pid, &st, 0) == -1) {
+            perror(prog);
+            status = 1;
+        } else if (WIFEXITED(st)) {
+            status = WEXITSTATUS(st);
+        } else {
+            status = 1;
+        }
+    }
+    return status;
 }
 
 /**
-* main - Entry point of the simple shell program
-* @argc: Argument count
-* @argv: Argument vector
-* @envp: Environment variable array
-* Return: The last command’s exit status
-*/
+ * run_interactive - Interactive loop with prompt.
+ * @envp: env
+ * @prog: program name
+ * @last_code: last exit status out param
+ */
+void run_interactive(char **envp, const char *prog, int *last_code)
+{
+    char *line;
+
+    for (;;) {
+        write(STDOUT_FILENO, PROMPT_TEXT, (unsigned int)strlen(PROMPT_TEXT));
+
+        line = fetch_input();
+        if (!line) { /* Ctrl+D */
+            write(STDOUT_FILENO, "\n", 1);
+            break;
+        }
+
+        if (!is_empty_line(line))
+            *last_code = execute_simple(line, envp, prog);
+
+        free(line);
+    }
+}
+
+/**
+ * run_noninteractive - Reads commands from stdin without prompt.
+ * @envp: env
+ * @prog: program name
+ * @last_code: last exit status out param
+ */
+void run_noninteractive(char **envp, const char *prog, int *last_code)
+{
+    char *line;
+
+    while ((line = fetch_input()) != NULL) {
+        if (!is_empty_line(line))
+            *last_code = execute_simple(line, envp, prog);
+        free(line);
+    }
+}
+
+/**
+ * main - Entry point
+ */
 int main(int argc, char **argv, char **envp)
 {
-int current_status = 0;
-(void)argc;
+    int last_status = 0;
+    (void)argc;
 
-if (isatty(STDIN_FILENO))
-run_interactive(envp, argv[0], &current_status);
-else
-run_noninteractive(envp, argv[0], &current_status);
+    if (isatty(STDIN_FILENO))
+        run_interactive(envp, argv[0], &last_status);
+    else
+        run_noninteractive(envp, argv[0], &last_status);
 
-return current_status;
+    return last_status;
 }
