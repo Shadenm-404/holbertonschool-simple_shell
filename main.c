@@ -50,10 +50,9 @@ int execute_simple(char *cmd, char **envp, const char *prog)
     }
 
     if (pid == 0) {
-        char *argv_exec[2] = { cmd, NULL };
-        execve(argv_exec[0], argv_exec, envp);
-        perror(prog);
-        _exit(127);
+	char *argv_exec[2];
+        argv_exec[0] = cmd;
+        argv_exec[1] = NULL;
     }
 
     /* parent */
