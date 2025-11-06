@@ -1,20 +1,21 @@
 #ifndef SHELL_H
 #define SHELL_H
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <fcntl.h>
 #include <errno.h>
+#define BUFFER_SIZE 1024
+#define TOKEN_DELIM " \t\r\n\a"
+#define PROMPT "$ "
 
-#define PROMPT_TEXT "#cisfun$ "
-
-extern char **environ;
-
-void run_interactive(char **envp, const char *prog, int *last_code);
-void run_noninteractive(char **envp, const char *prog, int *last_code);
-int  execute_simple(char *cmd, char **envp, const char *prog);
+void interactive_mode(char **envp, char *program_name, int *last_status);
+void non_interactive_mode(char **envp, char *program_name, int *last_status);
+int process_command(char *command, char **envp, char *program_name);
 
 #endif
