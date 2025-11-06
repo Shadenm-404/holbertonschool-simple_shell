@@ -1,131 +1,192 @@
 #include "shell.h"
 
-/* global variable to hold last exit status */
-static int last_exit_status = '0';
-
 /**
- * main - entry point for simple shell program
- * @argc: argument count
- * @argv: argument vector
- * @envp: environment variable array
+ * fetch_input - Reads one line from stdin and strips trailing newline.
  *
- * Return: exit status of the shell
+ * Return: malloc'ed string on success (must be freed by caller),
+ *         or NULL on EOF/error.
  */
-int main(int argc, char **argv, char **envp)
+static char *fetch_input(void)
 {
-	int last_status;
+	char *buf = NULL;
+	size_t cap = 0;
+	ssize_t nread;
 
-	(void)argc;
-
-	if (isatty(STDIN_FILENO))
+	nread = getline(&buf, &cap, stdin);
+	if (nread == -1)
 	{
-		interactive_mode(envp, argv[0], &last_status);
+		free(buf);
+		return (NULL);
 	}
-	else
-	{
-		non_interactive_mode(envp, argv[0], &last_status);
-	}
-
-	return (last_status);
+	if (nread > 0 && buf[nread - 1] == '\n')
+		buf[nread - 1] = '\0';
+	return (buf);
 }
 
 /**
- * interactive_mode - run the shell in interactive mode
- * @envp: environment variable array
- * @program_name: name of the shell executable
- * @last_status: pointer to last exit status
- *
- * Return: void
+ * trim_ws - Trims leading/trailing spaces/tabs in-place.
+ * @s: string to trim (modified in-place).
  */
-void interactive_mode(char **envp, char *program_name, int *last_status)
+static void trim_ws(char *s)
 {
-	char *command = NULL;
+	char *start, *end;
+	size_t len;
 
-	while (1)
+	if (s == NULL)
+		return;
+
+	start = s;
+	while (*start == ' ' || *start == '\t')
+		start++;
+
+	if (*start == '\0')
 	{
-		write(STDOUT_FILENO, PROMPT, _strlen(PROMPT));
-		command = read_line();
-		if (command == NULL)
+		s[0] = '\0';
+		return;
+	}
+
+	len = strlen(start);
+	end = start + (len - 1);
+	while (end > start && (*end == ' ' || *end == '\t'))
+		end--;
+	*(end + 1) = '\0';
+
+	if (start != s)
+		memmove(s, start, strlen(start) + 1);
+}
+
+/**
+ * is_empty_line - Checks if a string is empty (after trimming) or NULL.
+ * @txt: input string.
+ *
+ * Return: 1 if empty/NULL, 0 otherwise.
+ */
+static int is_empty_line(const char *txt)
+{
+	if (txt == NULL)
+		return (1);
+	while (*txt == ' ' || *txt == '\t')
+		txt++;
+	return (*txt == '\0');
+}
+
+/**
+ * execute_simple - Executes a single command (no args, no PATH search).
+ * @cmd: command path (e.g., "/bin/ls").
+ * @envp: environment variables array.
+ * @prog: shell program name (for perror prefix).
+ *
+ * Return: child's exit status (0..255), or 1 on wait error, 127 on exec error.
+ */
+int execute_simple(char *cmd, char **envp, const char *prog)
+{
+	pid_t pid;
+	int status, st;
+	char *argv_exec[2];
+
+	pid = fork();
+	if (pid == -1)
+	{
+		perror(prog);
+		return (1);
+	}
+
+	if (pid == 0)
+	{
+		argv_exec[0] = cmd;
+		argv_exec[1] = NULL;
+
+		execve(cmd, argv_exec, envp);
+
+		perror(prog);
+		_exit(127);
+	}
+
+	st = 0;
+	status = 0;
+	if (waitpid(pid, &st, 0) == -1)
+	{
+		perror(prog);
+		status = 1;
+	}
+	else if (WIFEXITED(st))
+	{
+		status = WEXITSTATUS(st);
+	}
+	else
+	{
+		status = 1;
+	}
+
+	return (status);
+}
+
+/**
+ * run_interactive - Runs the shell in interactive mode (prints prompt).
+ * @envp: environment variables array.
+ * @prog: shell program name (argv[0]).
+ * @last_code: out parameter for last exit status.
+ */
+void run_interactive(char **envp, const char *prog, int *last_code)
+{
+	char *line;
+
+	for (;;)
+	{
+		write(STDOUT_FILENO, PROMPT_TEXT, (unsigned int)strlen(PROMPT_TEXT));
+
+		line = fetch_input();
+		if (line == NULL)
 		{
-			/* handle EOF (Ctrl+D) */
 			write(STDOUT_FILENO, "\n", 1);
 			break;
 		}
 
-		if (_strlen(command) > 0)
-		{
-			*last_status = process_command(command, envp,
-				program_name);
-		}
+		trim_ws(line);
+		if (!is_empty_line(line))
+			*last_code = execute_simple(line, envp, prog);
 
-		free(command);
+		free(line);
 	}
 }
 
 /**
- * non_interactive_mode - run the shell in non-interactive mode
- * @envp: environment variable array
- * @program_name: name of the shell executable
- * @last_status: pointer to last exit status
- *
- * Return: void
+ * run_noninteractive - Runs the shell in non-interactive mode (no prompt).
+ * @envp: environment variables array.
+ * @prog: shell program name (argv[0]).
+ * @last_code: out parameter for last exit status.
  */
-void non_interactive_mode(char **envp, char *program_name,
-	int *last_status)
+void run_noninteractive(char **envp, const char *prog, int *last_code)
 {
-	char *command = NULL;
+	char *line;
 
-	while ((command = read_line()) != NULL)
+	while ((line = fetch_input()) != NULL)
 	{
-		if (_strlen(command) > 0)
-		{
-			*last_status = process_command(command, envp,
-				program_name);
-		}
-		free(command);
+		trim_ws(line);
+		if (!is_empty_line(line))
+			*last_code = execute_simple(line, envp, prog);
+		free(line);
 	}
 }
 
 /**
- * process_command - parse and execute a command line
- * @command: raw input string
- * @envp: environment variable array
- * @program_name: name of the shell executable
+ * main - Entry point.
+ * @argc: argument count.
+ * @argv: argument vector.
+ * @envp: environment variables array.
  *
- * Return: exit status of the command
+ * Return: last command's exit status.
  */
-int process_command(char *command, char **envp, char *program_name)
+int main(int argc, char **argv, char **envp)
 {
-	char **args;
-	int status = 0;
+	int last_status = 0;
 
-	args = parse_command(command);
-	if (args == NULL)
-	{
-		return (0);
-	}
+	(void)argc;
 
-	if (args[0] != NULL)
-	{
-		if (_strcmp(args[0], "exit") == 0)
-		{
-			free_args(args);
-			free(command);
-			exit(last_exit_status);
-		}
+	if (isatty(STDIN_FILENO))
+		run_interactive(envp, argv[0], &last_status);
+	else
+		run_noninteractive(envp, argv[0], &last_status);
 
-		if (is_builtin(args[0]))
-		{
-			status = execute_builtin(args, envp);
-		}
-		else
-		{
-			status = execute_command(args, envp,
-				program_name);
-		}
-	}
-
-	free_args(args);
-	last_exit_status = status;
-	return (status);
+	return (last_status);
 }
