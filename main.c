@@ -1,5 +1,7 @@
 #include "shell.h"
 
+#define MAX_ARGS 128
+
 /**
  * fetch_input - Reads one line from stdin and strips trailing newline.
  *
@@ -71,8 +73,50 @@ static int is_empty_line(const char *txt)
 }
 
 /**
- * execute_simple - Executes a single command (no args, no PATH search).
- * @cmd: command path (e.g., "/bin/ls").
+ * make_argv - Tokenizes a line into argv by spaces/tabs.
+ * @line: input line (will be modified by strtok).
+ *
+ * Return: newly allocated array of pointers (argv). Caller must free it with
+ *         free_argv(). Note: tokens point inside @line, do not free them.
+ */
+static char **make_argv(char *line)
+{
+	char **argv;
+	char *tok;
+	int i;
+
+	if (line == NULL)
+		return (NULL);
+
+	argv = (char **)malloc((MAX_ARGS + 1) * sizeof(char *));
+	if (argv == NULL)
+		return (NULL);
+
+	i = 0;
+	tok = strtok(line, " \t");
+	while (tok != NULL && i < MAX_ARGS)
+	{
+		argv[i] = tok;
+		i++;
+		tok = strtok(NULL, " \t");
+	}
+	argv[i] = NULL;
+	return (argv);
+}
+
+/**
+ * free_argv - Frees argv array created by make_argv().
+ * @argv: argv to free (tokens themselves must NOT be freed).
+ */
+static void free_argv(char **argv)
+{
+	if (argv != NULL)
+		free(argv);
+}
+
+/**
+ * execute_simple - Executes a command (argv[0]) with arguments, no PATH search.
+ * @cmd: raw command line (will be tokenized; modified in-place).
  * @envp: environment variables array.
  * @prog: shell program name (for perror prefix).
  *
@@ -82,22 +126,26 @@ int execute_simple(char *cmd, char **envp, const char *prog)
 {
 	pid_t pid;
 	int status, st;
-	char *argv_exec[2];
+	char **argv_exec;
+
+	argv_exec = make_argv(cmd);
+	if (argv_exec == NULL || argv_exec[0] == NULL)
+	{
+		free_argv(argv_exec);
+		return (0);
+	}
 
 	pid = fork();
 	if (pid == -1)
 	{
 		perror(prog);
+		free_argv(argv_exec);
 		return (1);
 	}
 
 	if (pid == 0)
 	{
-		argv_exec[0] = cmd;
-		argv_exec[1] = NULL;
-
-		execve(cmd, argv_exec, envp);
-
+		execve(argv_exec[0], argv_exec, envp);
 		perror(prog);
 		_exit(127);
 	}
@@ -118,6 +166,7 @@ int execute_simple(char *cmd, char **envp, const char *prog)
 		status = 1;
 	}
 
+	free_argv(argv_exec);
 	return (status);
 }
 
@@ -179,8 +228,9 @@ void run_noninteractive(char **envp, const char *prog, int *last_code)
  */
 int main(int argc, char **argv, char **envp)
 {
-	int last_status = 0;
+	int last_status;
 
+	last_status = 0;
 	(void)argc;
 
 	if (isatty(STDIN_FILENO))
