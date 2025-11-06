@@ -50,13 +50,13 @@ int execute_simple(char *cmd, char **envp, const char *prog)
     }
 
     if (pid == 0) {
-	char *argv_exec[2];
+        char *argv_exec[2];
         argv_exec[0] = cmd;
         argv_exec[1] = NULL;
-    }
-
-    /* parent */
-    {
+        execve(cmd, argv_exec, envp);
+        perror(prog);
+        _exit(127);
+    } else {
         int st;
         if (waitpid(pid, &st, 0) == -1) {
             perror(prog);
@@ -67,8 +67,10 @@ int execute_simple(char *cmd, char **envp, const char *prog)
             status = 1;
         }
     }
+
     return status;
 }
+
 
 /**
  * run_interactive - Interactive loop with prompt.
