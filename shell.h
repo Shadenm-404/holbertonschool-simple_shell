@@ -12,4 +12,9 @@
 #define BUFFER_SIZE 1024
 #define TOKEN_DELIM "\t\r\n\a"
 #define PROMPT "$"
+
+void run_noninteractive(char **envp, const char *prog, int *last_code)
+void run_interactive(char **envp, const char *prog, int *last_code)
+int execute_simple(char *cmd, char **envp, const char *prog)
+
 #endif
