@@ -23,10 +23,10 @@ int execute_cmd(char *cmd, char **envp, const char *prog)
 
     full = resolve_path(args[0]);
     if (full == NULL)
-    {
-        fprintf(stderr, "%s: command not found\n", prog);
-        return (127);
-    }
+{
+    fprintf(stderr, "%s: 1: %s: not found\n", prog, args[0]);
+    return (127);
+}
 
     pid = fork();
     if (pid == -1)
