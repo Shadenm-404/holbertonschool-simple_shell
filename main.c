@@ -59,6 +59,7 @@ static int is_empty_line(const char *txt)
 void run_interactive(char **envp, const char *prog, int *last_code)
 {
 	char *line;
+	int code;
 
 	for (;;)
 	{
@@ -73,7 +74,15 @@ void run_interactive(char **envp, const char *prog, int *last_code)
 
 		trim_ws(line);
 		if (!is_empty_line(line))
-			*last_code = execute_cmd(line, envp, prog);
+		{
+			code = execute_cmd(line, envp, prog);
+			if (code == -1000)
+			{
+				free(line);
+				break;
+			}
+			*last_code = code;
+		}
 
 		free(line);
 	}
@@ -82,21 +91,28 @@ void run_interactive(char **envp, const char *prog, int *last_code)
 void run_noninteractive(char **envp, const char *prog, int *last_code)
 {
 	char *line;
+	int code;
 
 	while ((line = fetch_input()) != NULL)
 	{
 		trim_ws(line);
 		if (!is_empty_line(line))
-			*last_code = execute_cmd(line, envp, prog);
+		{
+			code = execute_cmd(line, envp, prog);
+			if (code == -1000)
+			{
+				free(line);
+				break;
+			}
+			*last_code = code;
+		}
 		free(line);
 	}
 }
 
 int main(int argc, char **argv, char **envp)
 {
-	int last_status;
-
-	last_status = 0;
+	int last_status = 0;
 	(void)argc;
 
 	if (isatty(STDIN_FILENO))
