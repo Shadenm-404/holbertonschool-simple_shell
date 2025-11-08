@@ -1,24 +1,28 @@
 #include "shell.h"
 
-/**
- * resolve_path - search PATH directories for a command
- * @cmd: command name
- *
- * Return: newly allocated string with full path, or NULL if not found
- */
 char *resolve_path(char *cmd)
 {
-    char *path, *copy, *dir;
+    char *path = NULL;
+    char **env = environ;
+    char *copy, *dir;
     char full[512];
 
     if (!cmd)
         return (NULL);
 
-    /* if absolute or relative path already */
     if (cmd[0] == '/' || cmd[0] == '.')
         return (strdup(cmd));
 
-    path = getenv("PATH");
+    while (*env)
+    {
+        if (strncmp(*env, "PATH=", 5) == 0)
+        {
+            path = *env + 5;
+            break;
+        }
+        env++;
+    }
+
     if (!path)
         return (NULL);
 
