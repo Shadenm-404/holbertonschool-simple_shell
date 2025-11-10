@@ -1,62 +1,60 @@
 #ifndef SHELL_H
 #define SHELL_H
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <fcntl.h>
 #include <errno.h>
-
-/* ===== Prompt & Tokenizing ===== */
-#define PROMPT_TEXT "($) "
-#define TOK_DELIM " \t\r\n\a"
-
-extern char **environ;
-
-/* ===== Shell state (used by builtins/exec) ===== */
-typedef struct shell_state_s
-{
-	char *prog_name;          /* argv[0] */
-	unsigned long line_count; /* number of read lines */
-	int should_exit;          /* flag to exit REPL */
-	int exit_status;          /* last/return status */
-} shell_state_t;
-
-/* ===== Builtins dispatch types ===== */
-typedef int (*builtin_func)(char **args, shell_state_t *st);
+#define BUFFER_SIZE 1024
+#define TOKEN_DELIM " \t\r\n\a"
+#define PROMPT "$ "
+/* Data Structures */
+/**
+ * struct builtin_s - Builtin command structure
+ * @name: Name of the builtin command
+ * @func: Function pointer to the builtin command function
+ */
 typedef struct builtin_s
 {
 	char *name;
-	builtin_func func;
+	int (*func)(char **args, char **envp);
 } builtin_t;
-
-/* ===== REPL modes (keep your current API) ===== */
-void run_interactive(char **envp, const char *prog, int *last_code);
-void run_noninteractive(char **envp, const char *prog, int *last_code);
-
-/* ===== Optional unified loop API (if you use it) ===== */
-int   sh_loop(shell_state_t *st);
-char *sh_read_line(void);
-char **sh_split_line(char *line);
-int   sh_execute(char **args, shell_state_t *st);
-
-/* ===== PATH resolution + execution (keep your names) ===== */
-char *resolve_path(char *cmd);
-int   execute_cmd(char *cmd, char **envp, const char *prog);
-
-/* ===== Builtins ===== */
-int builtin_dispatch(char **args, shell_state_t *st);
-int bi_env(char **args, shell_state_t *st);
-int bi_exit(char **args, shell_state_t *st);
-
-/* ===== Utils ===== */
-size_t _strlen(const char *s);
-int    _strcmp(const char *s1, const char *s2);
-char  *_strdup(const char *s);
-int    _isdigit_str(const char *s);
-int    _atoi_posmod(const char *s, int *out);
-void   print_exit_illegal(shell_state_t *st, const char *arg);
-
+void interactive_mode(char **envp, char *program_name, int *last_status);
+void non_interactive_mode(char **envp, char *program_name, int *last_status);
+int process_command(char *command, char **envp, char *program_name);
+int execute_command(char **args, char **envp, char *program_name);
+char *find_command_path(char *command, char **envp);
+void handle_execution_error(char *command, char *program_name);
+int _atoi(char *str);
+int execute_command(char **args, char **envp, char *program_name);
+int handle_builtin_exit(char **args);
+int fork_and_execute(char *command_path,
+		char **args, char **envp, char *program_name);
+char *find_command_path(char *command, char **envp);
+int is_absolute_or_relative_path(char *command);
+char *check_path(char *path);
+char *search_path_directories(char **path_dirs, char *command);
+void handle_execution_error(char *command, char *program_name);
+char **parse_command(char *command);
+void free_args(char **args);
+char **split_path(char *path_env);
+char **create_empty_path_array(void);
+int process_path_tokens(char **path_dirs, char *path_env, int buffer_size);
+int is_builtin(char *command);
+int execute_builtin(char **args, char **envp);
+int builtin_exit(char **args, char **envp);
+int builtin_env(char **args, char **envp);
+char *get_path_env(char **envp);
+char **split_path(char *path_env);
+char *build_command_path(char *directory, char *command);
+char *read_line(void);
+int _strlen(char *s);
+char *_strdup(char *str);
+char *_strcat(char *dest, char *src);
+int _strcmp(char *s1, char *s2);
 #endif /* SHELL_H */
