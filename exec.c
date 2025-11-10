@@ -77,7 +77,7 @@ int run_external(char **args, shell_state_t *st)
 {
 	pid_t pid;
 	int status = 0;
-	char *path = find_in_path(args[0]);
+	char *path = resolve_path(args[0]);
 
 	if (!path)
 	{
