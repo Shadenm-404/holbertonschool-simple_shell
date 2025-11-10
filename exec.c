@@ -71,3 +71,46 @@ int execute_cmd(char *cmd, char **envp, const char *prog)
 		return (WEXITSTATUS(status));
 	return (1);
 }
+
+
+int run_external(char **args, shell_state_t *st)
+{
+	pid_t pid;
+	int status = 0;
+	char *path = find_in_path(args[0]);
+
+	if (!path)
+	{
+		dprintf(STDERR_FILENO, "%s: %lu: %s: not found\n",
+			st->prog_name, st->line_count, args[0]);
+		st->exit_status = 127;
+		return 127;
+	}
+
+	pid = fork();
+	if (pid == -1)
+	{
+		perror("fork");
+		free(path);
+		return errno;
+	}
+	if (pid == 0)
+	{
+		execve(path, args, environ);
+		perror("execve");
+		free(path);
+		_exit(126);
+	}
+	free(path);
+	if (waitpid(pid, &status, 0) == -1)
+	{
+		perror("waitpid");
+		return errno;
+	}
+	if (WIFEXITED(status))
+		st->exit_status = WEXITSTATUS(status);
+	else
+		st->exit_status = 128;
+
+	return st->exit_status;
+}
