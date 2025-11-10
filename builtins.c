@@ -1,69 +1,102 @@
-#include <unistd.h>
 #include "shell.h"
 
-extern char **environ;
+/**
+ * is_builtin - check if command is a built-in command
+ * @command: pointer to the command string
+ *
+ * Return: 1 if command is built-in, 0 otherwise
+ */
+int is_builtin(char *command)
+{
+	char *builtins[] = {"exit", "env", NULL};
+	int i;
+
+	if (command == NULL)
+	{
+		return (0);
+	}
+
+	for (i = 0; builtins[i] != NULL; i++)
+	{
+		if (_strcmp(command, builtins[i]) == 0)
+		{
+			return (1);
+		}
+	}
+
+	return (0);
+}
 
 /**
- * builtin_env - prints current environment
- * @args: (unused)
- * @envp: (unused)
+ * execute_builtin - execute a built-in command
+ * @args: array of argument strings
+ * @envp: array of environment variable strings
+ *
+ * Return: exit status of the built-in command
+ */
+int execute_builtin(char **args, char **envp)
+{
+	builtin_t builtins[] = {
+		{"exit", builtin_exit},
+		{"env", builtin_env},
+		{NULL, NULL}
+	};
+	int i;
+
+	if (args == NULL || args[0] == NULL)
+	{
+		return (0);
+	}
+
+	for (i = 0; builtins[i].name != NULL; i++)
+	{
+		if (_strcmp(args[0], builtins[i].name) == 0)
+		{
+			return (builtins[i].func(args, envp));
+		}
+	}
+
+	return (0);
+}
+
+/**
+ * builtin_exit - handle the exit built-in command
+ * @args: array of argument strings (ignored)
+ * @envp: array of environment variable strings (ignored)
+ *
+ * Return: exit status 0
+ */
+int builtin_exit(char **args, char **envp)
+{
+	(void)args;
+	(void)envp;
+
+	return (0);
+}
+
+/**
+ * builtin_env - handle the env built-in command
+ * @args: array of argument strings (ignored)
+ * @envp: array of environment variable strings
+ *
  * Return: 0 on success
  */
 int builtin_env(char **args, char **envp)
 {
-    int i;
-
-    (void)args;
-    (void)envp;
-
-    for (i = 0; environ[i] != NULL; i++)
-    {
-        write(STDOUT_FILENO, environ[i], _strlen(environ[i]));
-        write(STDOUT_FILENO, "\n", 1);
-    }
-    return (0);
-}
-
-int bi_exit(char **args, shell_state_t *st)
-{
-	int status = st->exit_status;
-
-	if (isatty(STDIN_FILENO))
-		write(STDOUT_FILENO, "exit\n", 5);
-
-	if (args[1])
-	{
-		if (_isdigit_str(args[1]) && _atoi_posmod(args[1], &status) == 0)
-		{
-			st->should_exit = 1;
-			st->exit_status = status;
-			return (status);
-		}
-		print_exit_illegal(st, args[1]);
-		return (2);
-	}
-	st->should_exit = 1;
-	st->exit_status = status;
-	return (status);
-}
-
-int builtin_dispatch(char **args, shell_state_t *st)
-{
 	int i;
-	builtin_t table[] = {
-		{"env", bi_env},
-		{"exit", bi_exit},
-		{NULL, NULL}
-	};
 
-	for (i = 0; table[i].name; i++)
+	(void)args;
+
+	if (envp == NULL)
 	{
-		if (_strcmp(args[0], table[i].name) == 0)
-		{
-			st->exit_status = table[i].func(args, st);
-			return (1);
-		}
+		return (0);
 	}
+
+	for (i = 0; envp[i] != NULL; i++)
+	{
+		write(STDOUT_FILENO, envp[i], _strlen(envp[i]));
+		write(STDOUT_FILENO, "\n", 1);
+	}
+
 	return (0);
 }
-
