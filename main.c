@@ -1,70 +1,131 @@
 #include "shell.h"
 
-#define MAX_ARGS 128
+/* global variable to hold last exit status */
+static int last_exit_status = '0';
 
-void run_interactive(char **envp, const char *prog, int *last_code)
+/**
+ * main - entry point for simple shell program
+ * @argc: argument count
+ * @argv: argument vector
+ * @envp: environment variable array
+ *
+ * Return: exit status of the shell
+ */
+int main(int argc, char **argv, char **envp)
 {
-	char *line;
-	int code;
+	int last_status;
 
-	for (;;)
+	(void)argc;
+
+	if (isatty(STDIN_FILENO))
 	{
-		write(STDOUT_FILENO, PROMPT_TEXT, (unsigned int)strlen(PROMPT_TEXT));
+		interactive_mode(envp, argv[0], &last_status);
+	}
+	else
+	{
+		non_interactive_mode(envp, argv[0], &last_status);
+	}
 
-		line = fetch_input();
-		if (line == NULL)
+	return (last_status);
+}
+
+/**
+ * interactive_mode - run the shell in interactive mode
+ * @envp: environment variable array
+ * @program_name: name of the shell executable
+ * @last_status: pointer to last exit status
+ *
+ * Return: void
+ */
+void interactive_mode(char **envp, char *program_name, int *last_status)
+{
+	char *command = NULL;
+
+	while (1)
+	{
+		write(STDOUT_FILENO, PROMPT, _strlen(PROMPT));
+		command = read_line();
+		if (command == NULL)
 		{
+			/* handle EOF (Ctrl+D) */
 			write(STDOUT_FILENO, "\n", 1);
 			break;
 		}
 
-		trim_ws(line);
-		if (!is_empty_line(line))
+		if (_strlen(command) > 0)
 		{
-			code = execute_cmd(line, envp, prog);
-			if (code == -1000)
-			{
-				free(line);
-				break;
-			}
-			*last_code = code;
+			*last_status = process_command(command, envp,
+				program_name);
 		}
 
-		free(line);
+		free(command);
 	}
 }
 
-void run_noninteractive(char **envp, const char *prog, int *last_code)
+/**
+ * non_interactive_mode - run the shell in non-interactive mode
+ * @envp: environment variable array
+ * @program_name: name of the shell executable
+ * @last_status: pointer to last exit status
+ *
+ * Return: void
+ */
+void non_interactive_mode(char **envp, char *program_name,
+	int *last_status)
 {
-	char *line;
-	int code;
+	char *command = NULL;
 
-	while ((line = fetch_input()) != NULL)
+	while ((command = read_line()) != NULL)
 	{
-		trim_ws(line);
-		if (!is_empty_line(line))
+		if (_strlen(command) > 0)
 		{
-			code = execute_cmd(line, envp, prog);
-			if (code == -1000)
-			{
-				free(line);
-				break;
-			}
-			*last_code = code;
+			*last_status = process_command(command, envp,
+				program_name);
 		}
-		free(line);
+		free(command);
 	}
 }
 
-int main(int argc, char **argv, char **envp)
+/**
+ * process_command - parse and execute a command line
+ * @command: raw input string
+ * @envp: environment variable array
+ * @program_name: name of the shell executable
+ *
+ * Return: exit status of the command
+ */
+int process_command(char *command, char **envp, char *program_name)
 {
-	int last_status = 0;
-	(void)argc;
+	char **args;
+	int status = 0;
 
-	if (isatty(STDIN_FILENO))
-		run_interactive(envp, argv[0], &last_status);
-	else
-		run_noninteractive(envp, argv[0], &last_status);
+	args = parse_command(command);
+	if (args == NULL)
+	{
+		return (0);
+	}
 
-	return (last_status);
+	if (args[0] != NULL)
+	{
+		if (_strcmp(args[0], "exit") == 0)
+		{
+			free_args(args);
+			free(command);
+			exit(last_exit_status);
+		}
+
+		if (is_builtin(args[0]))
+		{
+			status = execute_builtin(args, envp);
+		}
+		else
+		{
+			status = execute_command(args, envp,
+				program_name);
+		}
+	}
+
+	free_args(args);
+	last_exit_status = status;
+	return (status);
 }
