@@ -1,84 +1,153 @@
 #include "shell.h"
-
-char *resolve_path(char *cmd)
+/**
+ * get_path_env - get value of PATH environment variable
+ * @envp: array of environment variable strings
+ *
+ * Return: allocated string containing PATH value, or empty string if not found
+ */
+char *get_path_env(char **envp)
 {
-    char *path = NULL;
-    char **env = environ;
-    char *copy, *dir;
-    char full[512];
+	int i;
+	char *path_prefix = "PATH=";
+	int prefix_len = 5;
 
-    if (!cmd)
-        return (NULL);
+	if (envp == NULL)
+	{
+		return (_strdup(""));
+	}
 
-    if (cmd[0] == '/' || cmd[0] == '.')
-        return (strdup(cmd));
+	for (i = 0; envp[i] != NULL; i++)
+	{
+		if (strncmp(envp[i], path_prefix, prefix_len) == 0)
+		{
+			return (_strdup(envp[i] + prefix_len));
+		}
+	}
 
-    while (*env)
-    {
-        if (strncmp(*env, "PATH=", 5) == 0)
-        {
-            path = *env + 5;
-            break;
-        }
-        env++;
-    }
+	/* return empty string if PATH not found */
+	return (_strdup(""));
+}
+/**
+ * split_path - splits PATH environment variable into directories
+ * @path_env: PATH environment variable string
+ *
+ * Return: array of directory strings, NULL on failure
+ */
+char **split_path(char *path_env)
+{
+	char **path_dirs;
+	int i = 0;
+	int buffer_size = BUFFER_SIZE;
 
-    if (!path)
-        return (NULL);
+	if (path_env == NULL)
+		return (NULL);
 
-    copy = strdup(path);
-    dir = strtok(copy, ":");
+	if (path_env[0] == '\0')
+		return (create_empty_path_array());
 
-    while (dir)
-    {
-        snprintf(full, sizeof(full), "%s/%s", dir, cmd);
-        if (access(full, X_OK) == 0)
-        {
-            free(copy);
-            return (strdup(full));
-        }
-        dir = strtok(NULL, ":");
-    }
+	path_dirs = malloc(buffer_size * sizeof(char *));
+	if (path_dirs == NULL)
+	{
+		perror("malloc");
+		return (NULL);
+	}
 
-    free(copy);
-    return (NULL);
+	i = process_path_tokens(path_dirs, path_env, buffer_size);
+	if (i < 0)
+		return (NULL);
+
+	path_dirs[i] = NULL;
+	return (path_dirs);
 }
 
-char *find_in_path(const char *cmd)
+/**
+ * create_empty_path_array - creates empty path array
+ *
+ * Return: array with single NULL element, NULL on malloc failure
+ */
+char **create_empty_path_array(void)
 {
-	char *path, *dup, *dir, *full;
-	size_t ld, lc;
+	char **path_dirs = malloc(sizeof(char *));
 
-	if (!cmd || !*cmd) return NULL;
-
-	if (strchr(cmd, '/'))
+	if (path_dirs == NULL)
 	{
-		if (access(cmd, X_OK) == 0) return _strdup(cmd);
-		return NULL;
+		perror("malloc");
+		return (NULL);
 	}
-	path = getenv("PATH");
-	if (!path || !*path) return NULL;
+	path_dirs[0] = NULL;
+	return (path_dirs);
+}
 
-	dup = _strdup(path);
-	if (!dup) return NULL;
+/**
+ * process_path_tokens - processes and stores path tokens
+ * @path_dirs: array to store directories
+ * @path_env: PATH environment variable
+ * @buffer_size: initial buffer size
+ *
+ * Return: final index on success, -1 on failure
+ */
+int process_path_tokens(char **path_dirs, char *path_env, int buffer_size)
+{
+	char *token;
+	int i = 0;
 
-	lc = _strlen(cmd);
-	dir = strtok(dup, ":");
-	while (dir)
+	token = strtok(path_env, ":");
+	while (token != NULL)
 	{
-		ld = _strlen(dir);
-		full = malloc(ld + 1 + lc + 1);
-		if (!full) { free(dup); return NULL; }
-		memcpy(full, dir, ld); full[ld] = '/';
-		memcpy(full + ld + 1, cmd, lc);
-		full[ld + 1 + lc] = '\0';
+		path_dirs[i] = _strdup(token);
+		if (path_dirs[i] == NULL)
+		{
+			perror("strdup");
+			free_args(path_dirs);
+			return (-1);
+		}
 
-		if (access(full, X_OK) == 0)
-		{ free(dup); return full; }
-
-		free(full);
-		dir = strtok(NULL, ":");
+		i++;
+		if (i >= buffer_size)
+		{
+			buffer_size += BUFFER_SIZE;
+			path_dirs = realloc(path_dirs, buffer_size * sizeof(char *));
+			if (path_dirs == NULL)
+			{
+				perror("realloc");
+				return (-1);
+			}
+		}
+		token = strtok(NULL, ":");
 	}
-	free(dup);
-	return NULL;
+	return (i);
+}
+/**
+ * build_command_path - build full path for a command in directory
+ * @directory: directory path string
+ * @command: command name string
+ *
+ * Return: allocated string of full command path, or NULL on failure
+ */
+char *build_command_path(char *directory, char *command)
+{
+	char *command_path;
+	int dir_len;
+	int cmd_len;
+
+	if (directory == NULL || command == NULL)
+	{
+		return (NULL);
+	}
+
+	dir_len = _strlen(directory);
+	cmd_len = _strlen(command);
+
+	command_path = malloc(dir_len + cmd_len + 2);
+	if (command_path == NULL)
+	{
+		perror("malloc");
+		return (NULL);
+	}
+
+	strcpy(command_path, directory);
+	command_path[dir_len] = '/';
+	strcpy(command_path + dir_len + 1, command);
+
+	return (command_path);
 }
