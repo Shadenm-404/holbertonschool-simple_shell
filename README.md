@@ -75,7 +75,7 @@ file1.c  file2.c  README.md
 ```
 ---
 
-##Example Errors
+## Example Errors
 
 hsh: 3: foo: not found
 exit
@@ -83,12 +83,12 @@ hsh: 7: exit: Illegal number: abc
 
 ---
 
-##Repository
+## Repository
 git clone https://github.com/Shadenm-404/holbertonschool-simple_shell.git
 cd holbertonschool-simple_shell
 
 ---
 
-##Authors
+## Authors
 
 Sondoas Alrubaish & Shaden Alalwani
