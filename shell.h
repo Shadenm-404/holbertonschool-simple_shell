@@ -13,6 +13,9 @@
 #define BUFFER_SIZE 1024
 #define TOKEN_DELIM " \t\r\n\a"
 #define PROMPT "$ "
+
+extern char **environ;
+
 /* Data Structures */
 /**
  * struct builtin_s - Builtin command structure
@@ -24,6 +27,8 @@ typedef struct builtin_s
 	char *name;
 	int (*func)(char **args, char **envp);
 } builtin_t;
+
+
 void interactive_mode(char **envp, char *program_name, int *last_status);
 void non_interactive_mode(char **envp, char *program_name, int *last_status);
 int process_command(char *command, char **envp, char *program_name);
@@ -34,7 +39,7 @@ int _atoi(char *str);
 int execute_command(char **args, char **envp, char *program_name);
 int handle_builtin_exit(char **args);
 int fork_and_execute(char *command_path,
-		char **args, char **envp, char *program_name);
+char **args, char **envp, char *program_name);
 char *find_command_path(char *command, char **envp);
 int is_absolute_or_relative_path(char *command);
 char *check_path(char *path);
@@ -59,5 +64,6 @@ char *_strcat(char *dest, char *src);
 int _strcmp(char *s1, char *s2);
 int _setenv(const char *name, const char *value, int overwrite);
 int _unsetenv(const char *name);
+void print_env(void);
 int handle_builtin(char **args);
 #endif /* SHELL_H */
