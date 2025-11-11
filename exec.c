@@ -60,33 +60,32 @@ int handle_builtin_exit(char **args)
  *
  * Return: exit status of command
  */
-int fork_and_execute(char *command_path, char **args,
-		char **envp, char *program_name)
+int fork_and_execute(char *path, char **args, char **envp, char *program_name)
 {
-	pid_t pid;
-	int status;
+    pid_t pid;
+    int status;
+    (void)envp; /* لن نستخدم envp */
 
-	pid = fork();
-	if (pid == -1)
-	{
-		perror("fork");
-		return (1);
-	}
-	else if (pid == 0)
-	{
-		if (execve(command_path, args, envp) == -1)
-		{
-			handle_execution_error(args[0], program_name);
-			exit(127);
-		}
-	}
-	else
-	{
-		waitpid(pid, &status, 0);
-		if (WIFEXITED(status))
-			return (WEXITSTATUS(status));
-	}
-	return (status);
+    pid = fork();
+    if (pid == -1)
+        return (1);
+
+    if (pid == 0)
+    {
+        if (execve(path, args, environ) == -1)
+        {
+            perror(program_name);
+            _exit(127);
+        }
+    }
+    else
+    {
+        if (waitpid(pid, &status, 0) == -1)
+            return (1);
+        if (WIFEXITED(status))
+            return (WEXITSTATUS(status));
+        return (1);
+    }
 }
 
 /**
