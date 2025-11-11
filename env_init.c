@@ -1,5 +1,4 @@
 #include "shell.h"
-extern char **environ;
 
 static size_t my_strlen(const char *s)
 {
