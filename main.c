@@ -17,6 +17,9 @@ int main(int argc, char **argv, char **envp)
 
 	(void)argc;
 
+	if (init_env(envp) != 0)
+		return (1);
+
 	if (isatty(STDIN_FILENO))
 	{
 		interactive_mode(envp, argv[0], &last_status);
