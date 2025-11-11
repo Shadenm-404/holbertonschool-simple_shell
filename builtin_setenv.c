@@ -12,12 +12,7 @@ int _setenv(const char *name, const char *value, int overwrite)
 	if (!name || !*name || strchr(name, '=') || !value)
 		return (-1);
 
-	if (!overwrite)
-	{
-		char *old = getenv(name);
-
-		if (old != NULL)
-			return (0);
-	}
+	if (!overwrite && getenv(name) != NULL)
+		return (0);
 	return (setenv(name, value, 1));
 }
