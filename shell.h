@@ -57,4 +57,7 @@ int _strlen(char *s);
 char *_strdup(char *str);
 char *_strcat(char *dest, char *src);
 int _strcmp(char *s1, char *s2);
+int _setenv(const char *name, const char *value, int overwrite);
+int _unsetenv(const char *name);
+int handle_builtin(char **args);
 #endif /* SHELL_H */
