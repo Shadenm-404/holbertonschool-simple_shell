@@ -68,4 +68,6 @@ void print_env(void);
 int handle_builtin(char **args);
 char **tokenize(char *line);
 int init_env(char **envp);
+void _env_mark_owned(void);
+void free_env(void);
 #endif /* SHELL_H */
