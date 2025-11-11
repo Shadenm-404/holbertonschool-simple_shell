@@ -20,7 +20,7 @@ The shell behaves similarly to `/bin/sh` for the features implemented:
 ## Tasks Overview
 
 **Task 0 — README, man, AUTHORS**
-- Provide this `README.md`, `man_1_hsh`, and an `AUTHORS` file listing contributors as:
+- Provide this `README.md`, `man_1_simple_shell`, and an `AUTHORS` file listing contributors as:
 
 **Task 1 — Betty would be proud**
 - All files pass Betty checks; no file contains more than 5 functions.
