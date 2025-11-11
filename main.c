@@ -1,7 +1,7 @@
 #include "shell.h"
 
 /* global variable to hold last exit status */
-static int last_exit_status = '0';
+static int last_exit_status = 0;
 
 /**
  * main - entry point for simple shell program
