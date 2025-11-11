@@ -100,3 +100,46 @@ int builtin_env(char **args, char **envp)
 
 	return (0);
 }
+
+/**
+ * handle_builtin - checks and executes builtin shell commands
+ * @args: array of command arguments, where args[0] is the command name
+ *Return:
+ * 1 if a builtin command was executed successfully or handled,
+ * 0 if the command is not a builtin.
+ */
+int handle_builtin(char **args)
+{
+    if (strcmp(args[0], "exit") == 0)
+    {
+        exit(0);
+    }
+    else if (strcmp(args[0], "env") == 0)
+    {
+        print_env();
+        return (1);
+    }
+    else if (strcmp(args[0], "setenv") == 0)
+    {
+        if (!args[1] || !args[2])
+        {
+            fprintf(stderr, "Usage: setenv VARIABLE VALUE\n");
+            return (1);
+        }
+        if (_setenv(args[1], args[2], 1) != 0)
+            fprintf(stderr, "setenv: Failed to set variable\n");
+        return (1);
+    }
+    else if (strcmp(args[0], "unsetenv") == 0)
+    {
+        if (!args[1])
+        {
+            fprintf(stderr, "Usage: unsetenv VARIABLE\n");
+            return (1);
+        }
+        if (_unsetenv(args[1]) != 0)
+            fprintf(stderr, "unsetenv: Failed to unset variable\n");
+        return (1);
+    }
+    return (0); /* Not a builtin */
+}
