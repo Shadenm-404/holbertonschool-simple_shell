@@ -67,4 +67,5 @@ int _unsetenv(const char *name);
 void print_env(void);
 int handle_builtin(char **args);
 char **tokenize(char *line);
+int init_env(char **envp);
 #endif /* SHELL_H */
