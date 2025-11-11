@@ -1,0 +1,162 @@
+.TH simple_shell 1 "November 2025" "1.0" "User Commands"
+.SH NAME
+simple_shell \- a small UNIX command interpreter (executable: hsh)
+
+.SH SYNOPSIS
+.B hsh
+.br
+.B echo "command" | hsh
+
+.SH DESCRIPTION
+The
+.B simple_shell
+program implements a minimal subset of
+.BR /bin/sh (1)
+behavior:
+.IP \[bu] 2
+Interactive prompt + REPL loop, and non-interactive (stdin-driven) mode.
+.IP \[bu]
+PATH search for commands that do not contain '/'.
+.IP \[bu]
+Built-ins:
+.BR env ,
+.BR "exit [n]" .
+.IP \[bu]
+Error messages include program name and line number.
+.IP \[bu]
+Code follows Betty style; no file contains more than 5 functions.
+
+.SH TASKS OVERVIEW
+.TP
+.B Task 0 — README, man, AUTHORS
+Supply
+.B README.md ,
+this manual page
+.BR (man_1_simple_shell) ,
+and an
+.B AUTHORS
+file listing contributors.
+.TP
+.B Task 1 — Betty would be proud
+All files pass Betty checks; each file has \<= 5 functions.
+.TP
+.B Task 2 — Simple Shell 0.1
+Display a prompt, read a single-word command, execute via
+.BR fork (2)
+/ 
+.BR execve (2) .
+Loop until EOF or
+.BR exit .
+.TP
+.B Task 3 — Simple Shell 0.2
+Search the command in the
+.B PATH
+environment variable (if it has no '/').
+If not found, print an error (see ERRORS).
+.TP
+.B Task 4 — Simple Shell 0.3
+Handle end-of-file (Ctrl+D) cleanly without crashing or infinite loops.
+.TP
+.B Task 5 — Simple Shell 0.4
+Implement
+.BR "exit [n]" .
+If
+.I n
+is not a valid number, print an "Illegal number" error and do not exit; return status 2.
+.TP
+.B Task 6 — Simple Shell 1.0
+Implement
+.BR env
+to print the current environment (reads from
+.BR environ ).
+
+.SH BUILT-INS
+.TP
+.B env
+Print the current environment variables, one per line.
+.TP
+.B exit [n]
+Exit the shell with status
+.I n
+(modulo 256). If
+.I n
+is not a valid number, print the error shown in
+.BR ERRORS ,
+do not exit, and set status to 2.
+
+.SH USAGE
+.SS Interactive mode
+.PP
+.EX
+$ ./hsh
+$ /bin/ls
+file1.c  file2.c  README.md
+$ exit
+.EE
+.SS Non-interactive mode
+.PP
+.EX
+$ echo "/bin/ls" | ./hsh
+file1.c  file2.c  README.md
+.EE
+
+.SH ERRORS
+When a command is not found:
+.PP
+.EX
+hsh: line_number: command: not found
+.EE
+When
+.BR exit
+receives an invalid numeric argument:
+.PP
+.EX
+exit
+hsh: line_number: exit: Illegal number: arg
+.EE
+
+.SH EXIT STATUS
+The shell exits with the status of the last executed command.
+On invalid numeric argument to
+.BR exit ,
+the shell does not terminate and sets the status to 2.
+
+.SH FILES
+.TP
+.B README.md
+Project description and task overview.
+.TP
+.B man_1_simple_shell
+This manual page.
+.TP
+.B AUTHORS
+List of contributors in the form "Name <email>".
+.TP
+.B shell.h
+Public header (macros, types, prototypes).
+.TP
+.B builtins.c
+Built-in commands:
+.BR env ,
+.BR exit ,
+and dispatch.
+.TP
+.B path.c
+PATH resolution for commands without '/'.
+.TP
+.B exec.c
+Process creation and execution via
+.BR fork (2)
+/ 
+.BR execve (2) .
+.TP
+.B parser.c , helpers.c , utils*.c
+Tokenization and small utilities.
+
+.SH SEE ALSO
+.BR sh (1),
+.BR execve (2),
+.BR getenv (3)
+
+.SH AUTHORS
+Sondoas Alrubaish, Shaden Alalwani
