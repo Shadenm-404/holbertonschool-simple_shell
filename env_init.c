@@ -1,5 +1,5 @@
 #include "shell.h"
-
+static int env_owned = 0;
 static size_t my_strlen(const char *s)
 {
     size_t n = 0;
@@ -52,8 +52,29 @@ int init_env(char **envp)
             return (-1);
         }
     }
-    copy[count] = NULL;
+	copy[count] = NULL;
 
-    environ = copy;
+	environ = copy;
+	_env_mark_owned();
     return (0);
+}
+
+void _env_mark_owned(void)
+{
+    env_owned = 1;
+}
+
+void free_env(void)
+{
+    size_t i;
+
+    if (!env_owned || !environ)
+        return;
+
+    for (i = 0; environ[i]; i++)
+        free(environ[i]);
+
+    free(environ);
+    environ = NULL;
+    env_owned = 0;
 }
