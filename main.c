@@ -28,7 +28,7 @@ int main(int argc, char **argv, char **envp)
 	{
 		non_interactive_mode(envp, argv[0], &last_status);
 	}
-
+	free_env();
 	return (last_status);
 }
 
