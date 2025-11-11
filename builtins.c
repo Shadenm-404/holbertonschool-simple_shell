@@ -8,21 +8,17 @@
  */
 int is_builtin(char *command)
 {
-	char *builtins[] = {"exit", "env", NULL};
-	int i;
-
-	if (command == NULL)
-	{
+	if (!command)
 		return (0);
-	}
 
-	for (i = 0; builtins[i] != NULL; i++)
-	{
-		if (_strcmp(command, builtins[i]) == 0)
-		{
-			return (1);
-		}
-	}
+	if (_strcmp(command, "exit") == 0)
+		return (1);
+	if (_strcmp(command, "env") == 0)
+		return (1);
+	if (_strcmp(command, "setenv") == 0)
+		return (1);
+	if (_strcmp(command, "unsetenv") == 0)
+		return (1);
 
 	return (0);
 }
@@ -36,24 +32,44 @@ int is_builtin(char *command)
  */
 int execute_builtin(char **args, char **envp)
 {
-	builtin_t builtins[] = {
-		{"exit", builtin_exit},
-		{"env", builtin_env},
-		{NULL, NULL}
-	};
-	int i;
+	(void)envp;
 
-	if (args == NULL || args[0] == NULL)
+	if (_strcmp(args[0], "env") == 0)
 	{
+		size_t i;
+
+		for (i = 0; environ[i]; i++)
+		{
+			write(STDOUT_FILENO, environ[i], _strlen(environ[i]));
+			write(STDOUT_FILENO, "\n", 1);
+		}
 		return (0);
 	}
-
-	for (i = 0; builtins[i].name != NULL; i++)
+	else if (_strcmp(args[0], "setenv") == 0)
 	{
-		if (_strcmp(args[0], builtins[i].name) == 0)
+		if (!args[1] || !args[2])
 		{
-			return (builtins[i].func(args, envp));
+			fprintf(stderr, "Usage: setenv VARIABLE VALUE\n");
+			return (1);
 		}
+		if (_setenv(args[1], args[2], 1) != 0)
+			fprintf(stderr, "setenv: Failed to set variable\n");
+		return (0);
+	}
+	else if (_strcmp(args[0], "unsetenv") == 0)
+	{
+		if (!args[1])
+		{
+			fprintf(stderr, "Usage: unsetenv VARIABLE\n");
+			return (1);
+		}
+		if (_unsetenv(args[1]) != 0)
+			fprintf(stderr, "unsetenv: Failed to unset variable\n");
+		return (0);
+	}
+	else if (_strcmp(args[0], "exit") == 0)
+	{
+		return (0);
 	}
 
 	return (0);
