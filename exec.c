@@ -64,7 +64,7 @@ int fork_and_execute(char *path, char **args, char **envp, char *program_name)
 {
     pid_t pid;
     int status;
-    (void)envp; /* لن نستخدم envp */
+    (void)envp;
 
     pid = fork();
     if (pid == -1)
@@ -86,6 +86,7 @@ int fork_and_execute(char *path, char **args, char **envp, char *program_name)
             return (WEXITSTATUS(status));
         return (1);
     }
+    return (1);
 }
 
 /**
