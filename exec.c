@@ -16,9 +16,12 @@ int execute_command(char **args, char **envp, char *program_name)
 	if (args == NULL || args[0] == NULL)
 		return (0);
 
-	/* Handle built-in commands first (like exit) */
-	if (handle_builtin_exit(args))
-		return (0);
+	/* handle built-in commands like exit */
+	if (_strcmp(args[0], "exit") == 0)
+	{
+		handle_builtin_exit(args);
+		return (0); /* won't actually reach here because of exit() */
+	}
 
 	command_path = find_command_path(args[0], envp);
 	if (command_path == NULL)
@@ -36,25 +39,22 @@ int execute_command(char **args, char **envp, char *program_name)
  * handle_builtin_exit - handle exit builtin command with optional status
  * @args: array of argument strings
  *
- * Return: 1 if exit was handled, 0 otherwise
+ * Return: 1 (indicates command handled)
  */
 int handle_builtin_exit(char **args)
 {
 	int exit_status = 0;
 
-	if (_strcmp(args[0], "exit") == 0)
+	if (args[1] != NULL)
 	{
-		if (args[1] != NULL)
-		{
-			exit_status = _atoi(args[1]);
-			/* ensure value is within 0–255 */
-			exit_status = exit_status % 256;
-		}
-
-		free_args(args);
-		exit(exit_status);
+		exit_status = _atoi(args[1]);
+		exit_status %= 256; /* keep status in 0–255 */
 	}
-	return (0);
+
+	free_args(args);
+	exit(exit_status);
+
+	return (1);
 }
 
 /**
@@ -138,3 +138,4 @@ int is_absolute_or_relative_path(char *command)
 {
 	return (command[0] == '/' || command[0] == '.');
 }
+
