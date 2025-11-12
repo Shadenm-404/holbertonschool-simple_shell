@@ -16,6 +16,7 @@ int execute_command(char **args, char **envp, char *program_name)
 	if (args == NULL || args[0] == NULL)
 		return (0);
 
+	/* Handle built-in commands first (like exit) */
 	if (handle_builtin_exit(args))
 		return (0);
 
@@ -44,7 +45,11 @@ int handle_builtin_exit(char **args)
 	if (_strcmp(args[0], "exit") == 0)
 	{
 		if (args[1] != NULL)
+		{
 			exit_status = _atoi(args[1]);
+			/* ensure value is within 0–255 */
+			exit_status = exit_status % 256;
+		}
 
 		free_args(args);
 		exit(exit_status);
@@ -54,7 +59,7 @@ int handle_builtin_exit(char **args)
 
 /**
  * fork_and_execute - fork process and execute command
- * @command_path: full path to command
+ * @path: full path to command
  * @args: array of argument strings
  * @envp: array of environment variables
  * @program_name: name of shell executable
@@ -63,30 +68,30 @@ int handle_builtin_exit(char **args)
  */
 int fork_and_execute(char *path, char **args, char **envp, char *program_name)
 {
-    pid_t pid;
-    int status;
+	pid_t pid;
+	int status;
 
-    pid = fork();
-    if (pid == -1)
-        return (1);
+	pid = fork();
+	if (pid == -1)
+		return (1);
 
-    if (pid == 0)
-    {
-        if (execve(path, args, envp) == -1)
-        {
-            perror(program_name);
-            _exit(127);
-        }
-    }
-    else
-    {
-        if (waitpid(pid, &status, 0) == -1)
-            return (1);
-        if (WIFEXITED(status))
-            return (WEXITSTATUS(status));
-        return (1);
-    }
-    return (1);
+	if (pid == 0)
+	{
+		if (execve(path, args, envp) == -1)
+		{
+			perror(program_name);
+			_exit(127);
+		}
+	}
+	else
+	{
+		if (waitpid(pid, &status, 0) == -1)
+			return (1);
+		if (WIFEXITED(status))
+			return (WEXITSTATUS(status));
+		return (1);
+	}
+	return (1);
 }
 
 /**
@@ -133,4 +138,3 @@ int is_absolute_or_relative_path(char *command)
 {
 	return (command[0] == '/' || command[0] == '.');
 }
-
