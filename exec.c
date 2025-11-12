@@ -32,7 +32,7 @@ int execute_command(char **args, char **envp, char *program_name)
 }
 
 /**
- * handle_builtin_exit - handle exit builtin command
+ * handle_builtin_exit - handle exit builtin command with optional status
  * @args: array of argument strings
  *
  * Return: 1 if exit was handled, 0 otherwise
@@ -45,6 +45,7 @@ int handle_builtin_exit(char **args)
 	{
 		if (args[1] != NULL)
 			exit_status = _atoi(args[1]);
+
 		free_args(args);
 		exit(exit_status);
 	}
@@ -64,7 +65,6 @@ int fork_and_execute(char *path, char **args, char **envp, char *program_name)
 {
     pid_t pid;
     int status;
-    (void)envp;
 
     pid = fork();
     if (pid == -1)
@@ -72,7 +72,7 @@ int fork_and_execute(char *path, char **args, char **envp, char *program_name)
 
     if (pid == 0)
     {
-        if (execve(path, args, environ) == -1)
+        if (execve(path, args, envp) == -1)
         {
             perror(program_name);
             _exit(127);
@@ -133,3 +133,4 @@ int is_absolute_or_relative_path(char *command)
 {
 	return (command[0] == '/' || command[0] == '.');
 }
+
