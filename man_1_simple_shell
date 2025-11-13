@@ -1,4 +1,4 @@
-t.TH simple_shell 1 "November 2025" "1.0" "User Commands"
+.TH simple_shell 1 "November 2025" "1.0" "User Commands"
 .SH NAME
 simple_shell \- a small UNIX command interpreter (executable: hsh)
 
@@ -10,153 +10,208 @@ simple_shell \- a small UNIX command interpreter (executable: hsh)
 .SH DESCRIPTION
 The
 .B simple_shell
-program implements a minimal subset of
+program implements a minimal subset of the
 .BR /bin/sh (1)
-behavior:
-.IP \[bu] 2
-Interactive prompt + REPL loop, and non-interactive (stdin-driven) mode.
-.IP \[bu]
-PATH search for commands that do not contain '/'.
-.IP \[bu]
-Built-ins:
-.BR env ,
-.BR "exit [n]" .
-.IP \[bu]
-Error messages include program name and line number.
-.IP \[bu]
-Code follows Betty style; no file contains more than 5 functions.
+command interpreter.
+
+It supports interactive and non-interactive execution, command parsing,
+PATH lookup, and several built-in commands.  
+The project follows Holberton School requirements and is fully Betty-compliant.
+
+---
 
 .SH TASKS OVERVIEW
+The following summarizes the features implemented across the project tasks:
+
 .TP
-.B Task 0 — README, man, AUTHORS
-Supply
-.B README.md ,
-this manual page
-.BR (man_1_simple_shell) ,
-and an
-.B AUTHORS
-file listing contributors.
+.B Task 0 - README, man, AUTHORS
+Prepare project documentation including:
+.br
+\- A complete README file.
+.br
+\- A manual page named
+.BR man_1_simple_shell .
+.br
+\- An AUTHORS file listing contributors in the format:
+.br
+"Name <email> - role".
+
 .TP
-.B Task 1 — Betty would be proud
-All files pass Betty checks; each file has \<= 5 functions.
+.B Task 1 - Betty compliance
+All source files must follow Betty style rules.
+No more than 5 functions may appear in a single file.
+
 .TP
-.B Task 2 — Simple Shell 0.1
-Display a prompt, read a single-word command, execute via
+.B Task 2 - Simple Shell 0.1
+Display a prompt, read a command, execute it using
 .BR fork (2)
-/ 
+and
 .BR execve (2) .
-Loop until EOF or
+Loop until EOF or the user enters
 .BR exit .
+
 .TP
-.B Task 3 — Simple Shell 0.2
-Search the command in the
-.B PATH
-environment variable (if it has no '/').
-If not found, print an error (see ERRORS).
+.B Task 3 - Simple Shell 0.2
+If a command contains no '/', search for it in directories listed in
+.B PATH .
+If not found, print an error:
+.br
+.EX
+hsh: line_number: command: not found
+.EE
+
 .TP
-.B Task 4 — Simple Shell 0.3
-Handle end-of-file (Ctrl+D) cleanly without crashing or infinite loops.
+.B Task 4 - Simple Shell 0.3
+Handle end-of-file (Ctrl+D) gracefully without crashes or infinite loops.
+
 .TP
-.B Task 5 — Simple Shell 0.4
-Implement
+.B Task 5 - Simple Shell 0.4
+Implement:
+.br
 .BR "exit [n]" .
 If
 .I n
-is not a valid number, print an "Illegal number" error and do not exit; return status 2.
+is not a valid number, print an error:
+.br
+.EX
+exit
+hsh: line_number: exit: Illegal number: n
+.EE
+The shell must continue running and return status code 2.
+
 .TP
-.B Task 6 — Simple Shell 1.0
-Implement
-.BR env
-to print the current environment (reads from
+.B Task 6 - Simple Shell 1.0
+Implement the
+.B env
+built-in command to print the current environment (using
 .BR environ ).
 
+.TP
+.B Task 13 - setenv, unsetenv
+Add two built-in commands to manage environment variables:
+
+.RS
+.IP \[bu] 2
+\fBsetenv VARIABLE VALUE\fR  
+Create or update an environment variable.  
+Print an error to stderr on failure.
+
+.IP \[bu]
+\fBunsetenv VARIABLE\fR  
+Remove an environment variable.  
+Print an error to stderr on failure.
+.RE
+
+---
+
 .SH BUILT-INS
+
 .TP
 .B env
-Print the current environment variables, one per line.
+Print all environment variables, one per line.
+
 .TP
 .B exit [n]
 Exit the shell with status
 .I n
-(modulo 256). If
-.I n
-is not a valid number, print the error shown in
-.BR ERRORS ,
-do not exit, and set status to 2.
+(modulo 256).  
+Invalid arguments set status 2 and do not exit.
+
+.TP
+.B setenv VARIABLE VALUE
+Create or update an environment variable.
+
+.TP
+.B unsetenv VARIABLE
+Remove an existing environment variable.
+
+---
 
 .SH USAGE
+
 .SS Interactive mode
-.PP
 .EX
 $ ./hsh
-$ /bin/ls
-file1.c  file2.c  README.md
-$ exit
-.EE
-.SS Non-interactive mode
-.PP
-.EX
-$ echo "/bin/ls" | ./hsh
-file1.c  file2.c  README.md
+($) /bin/ls
+README.md shell.h main.c
+($) env
+($) exit
 .EE
 
+.SS Non-interactive mode
+.EX
+$ echo "/bin/ls" | ./hsh
+README.md shell.h main.c
+.EE
+
+---
+
 .SH ERRORS
-When a command is not found:
-.PP
+
+If a command is not found:
 .EX
 hsh: line_number: command: not found
 .EE
-When
-.BR exit
-receives an invalid numeric argument:
-.PP
+
+Invalid numeric argument to exit:
 .EX
 exit
-hsh: line_number: exit: Illegal number: arg
+hsh: line_number: exit: Illegal number: abc
 .EE
 
+Errors in setenv or unsetenv:
+.EX
+hsh: line_number: setenv: Missing arguments
+hsh: line_number: unsetenv: Variable not found
+.EE
+
+---
+
 .SH EXIT STATUS
-The shell exits with the status of the last executed command.
-On invalid numeric argument to
-.BR exit ,
-the shell does not terminate and sets the status to 2.
+The shell exits with the status of the last executed command.  
+Invalid arguments to
+.B exit
+set the status to 2 without terminating the shell.
+
+---
 
 .SH FILES
 .TP
 .B README.md
-Project description and task overview.
-.TP
-.B man_1_simple_shell
-This manual page.
+Project documentation.
 .TP
 .B AUTHORS
-List of contributors in the form "Name <email>".
+Contributor list.
 .TP
 .B shell.h
-Public header (macros, types, prototypes).
+Header file containing structure definitions and prototypes.
 .TP
 .B builtins.c
 Built-in commands:
 .BR env ,
 .BR exit ,
-and dispatch.
+.BR setenv ,
+and
+.BR unsetenv .
 .TP
 .B path.c
-PATH resolution for commands without '/'.
+Command resolution using the PATH variable.
 .TP
 .B exec.c
-Process creation and execution via
-.BR fork (2)
-/ 
-.BR execve (2) .
+Process creation and execution logic.
 .TP
 .B parser.c , helpers.c , utils*.c
-Tokenization and small utilities.
+Input parsing and utility helpers.
+
+---
 
 .SH SEE ALSO
 .BR sh (1),
 .BR execve (2),
+.BR fork (2),
 .BR getenv (3)
 
+---
+
 .SH AUTHORS
-Sondoas Alrubaish, Shaden Alalwanihis our man page - will be edit latter
+Sondoas Alrubaish, Shaden Alalwani
