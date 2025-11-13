@@ -44,6 +44,15 @@ Do not exit; return status `2`.
 **Task 6 — Simple Shell 1.0**
 - Implement `env` to print the current environment (using `environ`).
 
+**Task 13 — setenv, unsetenv**
+- Implement two new built-in commands:
+- **`setenv VARIABLE VALUE`**
+  - Adds a new environment variable or modifies an existing one.
+  - Prints an error to `stderr` on failure.
+- **`unsetenv VARIABLE`**
+  - Removes an environment variable from the environment list.
+  - Prints an error to `stderr` on failure.
+
 ---
 
 ## Build
